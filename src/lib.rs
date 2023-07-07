@@ -1,14 +1,17 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
+//! A chat system which asks user to login/signup before messaging
+
+pub mod login;
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
+    use login::attempt_login;
+    use std::path::Path;
     #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+    fn could_login() {
+        assert_eq!(
+            true,
+            attempt_login("Manikya", "Manikya@123", Path::new("user_data.txt"))
+        );
     }
 }
