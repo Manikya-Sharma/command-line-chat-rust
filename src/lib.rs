@@ -2,6 +2,27 @@
 
 pub mod login;
 
+/// struct storing all the information about current user
+pub struct User {
+    username: String,
+    password: String,
+}
+
+impl User {
+    pub fn new(username: &str, password: &str) -> User {
+        User {
+            username: username.to_string(),
+            password: password.to_string(),
+        }
+    }
+    pub fn username(&self) -> &str {
+        &self.username
+    }
+    pub fn password(&self) -> &str {
+        &self.password
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -11,7 +32,7 @@ mod tests {
     fn could_login() {
         assert_eq!(
             true,
-            attempt_login("Manikya", "Manikya@123", Path::new("user_data.txt"))
+            attempt_login(&User::new("a", "b"), &Path::new("user_data.txt"))
         );
     }
 }

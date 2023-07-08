@@ -1,4 +1,5 @@
 //! Module to implement login functionality for already signed up users
+use super::User;
 use rpassword;
 use std::fs::read_to_string;
 use std::io::{self, Write};
@@ -9,13 +10,14 @@ use std::path::Path;
 /// # Examples: -
 ///
 /// ```
-/// use my_app::user_login;
+/// use my_app::login::user_login;
+/// use my_app::User;
 /// fn main() {
-///     let (username, password) = user_login();
-///     println!("Username: {username}, Password: {password}");
+///     let my_user = user_login();
+///     println!("Username: {}, Password: {}", my_user.username(), my_user.password());
 /// }
 /// ```
-pub fn user_login() -> (String, String) {
+pub fn user_login() -> User {
     let mut username = String::new();
     print!("Username: ");
     let _ = io::stdout().flush();
@@ -24,7 +26,10 @@ pub fn user_login() -> (String, String) {
         .expect("Could not take input, please try again later");
     let username = username.trim();
     let password = rpassword::prompt_password("Password: ").unwrap();
-    (username.to_string(), password.to_string())
+    User {
+        username: username.to_string(),
+        password: password.to_string(),
+    }
 }
 
 /// Reads data from data file and tells if user is present or not
@@ -41,18 +46,19 @@ pub fn user_login() -> (String, String) {
 ///
 /// ```
 /// use std::path::Path;
-/// use my_app::attempt_login;
+/// use my_app::{User, login::attempt_login};
 /// fn main() {
 ///     let path = Path::new("user_data.txt");
-///     if attempt_login("Manikya", "Manikya@123", &path) {
+///     let user = User::new("username", "password");
+///     if attempt_login(&user, &path) {
 ///         println!("Login successful");
 ///     } else {
 ///         println!("Could not login");
 ///     }
 /// }
-pub fn attempt_login(username: &str, password: &str, file_path: &Path) -> bool {
-    let username = username.to_string();
-    let password = password.to_string();
+pub fn attempt_login(user: &User, file_path: &Path) -> bool {
+    let username = user.username();
+    let password = user.password();
     let data = match read_to_string(file_path) {
         Ok(data) => data,
         Err(e) => {
@@ -66,7 +72,6 @@ pub fn attempt_login(username: &str, password: &str, file_path: &Path) -> bool {
             Some((username, password)) => (username.trim(), password.trim()),
             None => ("@", "@"), // Demo data, will not be acceptable username, password
         };
-        println!("{}, {}", existing_username, existing_password);
         if username == existing_username && password == existing_password {
             return true;
         }

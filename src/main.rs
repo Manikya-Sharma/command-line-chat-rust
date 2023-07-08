@@ -8,8 +8,8 @@ fn main() {
     let login_attempts = 3;
 
     for attempt in 1..=login_attempts {
-        let (username, password) = user_login();
-        if attempt_login(&username, &password, &path) {
+        let current_user = user_login();
+        if attempt_login(&current_user, &path) {
             println!("Logged in successfully");
         } else {
             println!(
