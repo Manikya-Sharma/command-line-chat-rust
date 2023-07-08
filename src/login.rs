@@ -64,9 +64,12 @@ pub fn attempt_login(username: &str, password: &str, file_path: &Path) -> bool {
         let line = line.to_string();
         let (existing_username, existing_password) = match line.split_once(",") {
             Some((username, password)) => (username.trim(), password.trim()),
-            None => ("@", "@"),
+            None => ("@", "@"), // Demo data, will not be acceptable username, password
         };
-        return username == existing_username && password == existing_password;
+        println!("{}, {}", existing_username, existing_password);
+        if username == existing_username && password == existing_password {
+            return true;
+        }
     }
     false
 }
