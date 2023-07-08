@@ -1,5 +1,5 @@
 //! Module to implement login functionality for already signed up users
-use super::User;
+use super::user_input;
 use std::fs::read_to_string;
 use std::path::Path;
 use std::{sync::mpsc, thread};
@@ -56,15 +56,18 @@ impl ExistingData {
 ///         println!("Could not login");
 ///     }
 /// }
-pub fn attempt_login(user: &User, file_path: &'static Path) -> bool {
+pub fn attempt_login(file_path: &'static Path) -> bool {
     let mut data = ExistingData::new();
     let (tx_data, rx_data) = mpsc::channel();
     let load_data = thread::spawn(move || {
         data.update(file_path);
         tx_data.send(data).unwrap();
     });
+
+    let user = user_input();
     let username = user.username();
     let password = user.password();
+
     load_data.join().unwrap();
     for (existing_username, existing_password) in rx_data.recv().unwrap().data() {
         if username == existing_username && password == existing_password {

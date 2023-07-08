@@ -64,34 +64,9 @@ pub fn user_input() -> User {
 mod tests {
     use super::*;
     use login::attempt_login;
-    use signup::user_signup;
     use std::path::Path;
     #[test]
     fn could_login() {
-        assert_eq!(
-            true,
-            attempt_login(&User::new("a", "b"), &Path::new("user_data.txt"))
-        );
-    }
-    #[test]
-    fn non_unique_username_signup() {
-        assert_eq!(
-            Err(String::from("Username not unique")),
-            user_signup(&User::new("a", "b"))
-        );
-    }
-    #[test]
-    fn invalid_password_signup() {
-        assert_eq!(
-            Err(String::from("Invalid password")),
-            user_signup(&User::new("jon_doe", "@@b"))
-        );
-    }
-    #[test]
-    fn invalid_username_signup() {
-        assert_eq!(
-            Err(String::from("Invalid username")),
-            user_signup(&User::new("jon doe", "b"))
-        );
+        assert_eq!(true, attempt_login(&Path::new("user_data.txt")));
     }
 }

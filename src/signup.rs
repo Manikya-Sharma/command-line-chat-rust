@@ -1,4 +1,4 @@
-use super::{login::ExistingData, User};
+use super::{login::ExistingData, user_input};
 use regex::Regex;
 use std::fs;
 use std::path::Path;
@@ -15,27 +15,28 @@ fn check_uniqueness(username: &str, data: &ExistingData) -> bool {
 
 fn check_valid_username(username: &str) -> bool {
     // Minimum eight characters, at least one uppercase letter, one lowercase letter and one number:
-    let re = Regex::new("^[^\\s]+$").unwrap();
+    let re = Regex::new("^[a-zA-Z0-9]+$").unwrap();
     re.is_match(username)
 }
 
 fn check_valid_password(password: &str) -> bool {
     // Minimum eight characters, at least one uppercase letter, one lowercase letter and one number:
-    let re = Regex::new("^[a-zA-Z0-9]+$").unwrap();
+    let re = Regex::new("^[^\\s]+$").unwrap();
     re.is_match(password)
 }
 
-pub fn user_signup(user: &User) -> Result<(), String> {
+pub fn user_signup() -> Result<(), String> {
     // caching existing user data
-    let username = user.username();
-    let password = user.password();
     let mut data = ExistingData::new();
     let (tx_data, rx_data) = mpsc::channel();
     let load_data = thread::spawn(move || {
         data.update(Path::new("user_data.txt"));
         tx_data.send(data).unwrap();
     });
-
+    // take user input
+    let user = user_input();
+    let username = user.username();
+    let password = user.password();
     // checking validity
     load_data.join().unwrap();
     let mut updated_data = rx_data.recv().unwrap();
