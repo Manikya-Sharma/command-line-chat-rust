@@ -1,18 +1,19 @@
 //! Module to implement login functionality for already signed up users
 use super::User;
-use rpassword;
 use std::fs::read_to_string;
-use std::io::{self, Write};
 use std::path::Path;
 use std::{sync::mpsc, thread};
 
 // meant to store data as a cache for threading
-struct ExistingData {
+pub struct ExistingData {
     data: Vec<(String, String)>,
 }
 
 impl ExistingData {
-    fn update(&mut self, path: &Path) {
+    pub fn new() -> ExistingData {
+        ExistingData { data: Vec::new() }
+    }
+    pub fn update(&mut self, path: &Path) {
         for line in read_to_string(path).unwrap().lines() {
             match line.split_once(",") {
                 Some((username, password)) => {
@@ -23,35 +24,11 @@ impl ExistingData {
             }
         }
     }
-    fn data(&self) -> &Vec<(String, String)> {
+    pub fn data(&self) -> &Vec<(String, String)> {
         &self.data
     }
-}
-
-/// It is a wrapper function for taking input
-///
-/// # Examples: -
-///
-/// ```
-/// use my_app::login::user_login;
-/// use my_app::User;
-/// fn main() {
-///     let my_user = user_login();
-///     println!("Username: {}, Password: {}", my_user.username(), my_user.password());
-/// }
-/// ```
-pub fn user_login() -> User {
-    let mut username = String::new();
-    print!("Username: ");
-    let _ = io::stdout().flush();
-    io::stdin()
-        .read_line(&mut username)
-        .expect("Could not take input, please try again later");
-    let username = username.trim();
-    let password = rpassword::prompt_password("Password: ").unwrap();
-    User {
-        username: username.to_string(),
-        password: password.to_string(),
+    pub fn append_custom_data(&mut self, data: (String, String)) {
+        self.data.push(data);
     }
 }
 
@@ -80,7 +57,7 @@ pub fn user_login() -> User {
 ///     }
 /// }
 pub fn attempt_login(user: &User, file_path: &'static Path) -> bool {
-    let mut data = ExistingData { data: Vec::new() };
+    let mut data = ExistingData::new();
     let (tx_data, rx_data) = mpsc::channel();
     let load_data = thread::spawn(move || {
         data.update(file_path);
