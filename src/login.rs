@@ -4,6 +4,29 @@ use rpassword;
 use std::fs::read_to_string;
 use std::io::{self, Write};
 use std::path::Path;
+use std::{sync::mpsc, thread};
+
+// meant to store data as a cache for threading
+struct ExistingData {
+    data: Vec<(String, String)>,
+}
+
+impl ExistingData {
+    fn update(&mut self, path: &Path) {
+        for line in read_to_string(path).unwrap().lines() {
+            match line.split_once(",") {
+                Some((username, password)) => {
+                    self.data
+                        .push((username.trim().to_string(), password.trim().to_string()));
+                }
+                None => (),
+            }
+        }
+    }
+    fn data(&self) -> &Vec<(String, String)> {
+        &self.data
+    }
+}
 
 /// It is a wrapper function for taking input
 ///
@@ -56,22 +79,17 @@ pub fn user_login() -> User {
 ///         println!("Could not login");
 ///     }
 /// }
-pub fn attempt_login(user: &User, file_path: &Path) -> bool {
+pub fn attempt_login(user: &User, file_path: &'static Path) -> bool {
+    let mut data = ExistingData { data: Vec::new() };
+    let (tx_data, rx_data) = mpsc::channel();
+    let load_data = thread::spawn(move || {
+        data.update(file_path);
+        tx_data.send(data).unwrap();
+    });
     let username = user.username();
     let password = user.password();
-    let data = match read_to_string(file_path) {
-        Ok(data) => data,
-        Err(e) => {
-            println!("Could not access file: {}", e);
-            "invalid".to_string()
-        }
-    };
-    for line in data.lines() {
-        let line = line.to_string();
-        let (existing_username, existing_password) = match line.split_once(",") {
-            Some((username, password)) => (username.trim(), password.trim()),
-            None => ("@", "@"), // Demo data, will not be acceptable username, password
-        };
+    load_data.join().unwrap();
+    for (existing_username, existing_password) in rx_data.recv().unwrap().data() {
         if username == existing_username && password == existing_password {
             return true;
         }
