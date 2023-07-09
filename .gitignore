@@ -1,4 +1,4 @@
 /target
 /Cargo.lock
 .vscode
-user_data.txt
+user_data.csv

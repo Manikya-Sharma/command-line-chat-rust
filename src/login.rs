@@ -1,6 +1,8 @@
 //! Module to implement login functionality for already signed up users
-use super::user_input;
+
+use super::{user_input, User};
 use std::fs::read_to_string;
+use std::io::ErrorKind;
 use std::path::Path;
 use std::{sync::mpsc, thread};
 
@@ -14,7 +16,18 @@ impl ExistingData {
         ExistingData { data: Vec::new() }
     }
     pub fn update(&mut self, path: &Path) {
-        for line in read_to_string(path).unwrap().lines() {
+        let file = match read_to_string(path) {
+            Ok(file) => file,
+            Err(e) => {
+                if e.kind() == ErrorKind::NotFound {
+                    // no need to cache
+                    return;
+                } else {
+                    panic!("Could not read file");
+                }
+            }
+        };
+        for line in file.lines() {
             match line.split_once(",") {
                 Some((username, password)) => {
                     self.data
@@ -48,14 +61,14 @@ impl ExistingData {
 /// use std::path::Path;
 /// use my_app::{User, login::attempt_login};
 /// fn main() {
-///     let path = Path::new("user_data.txt");
+///     let path = Path::new("user_data.csv");
 ///     if attempt_login(&path) {
 ///         println!("Login successful");
 ///     } else {
 ///         println!("Could not login");
 ///     }
 /// }
-pub fn attempt_login(file_path: &'static Path) -> bool {
+pub fn attempt_login(file_path: &'static Path) -> Result<User, String> {
     let mut data = ExistingData::new();
     let (tx_data, rx_data) = mpsc::channel();
     let load_data = thread::spawn(move || {
@@ -70,8 +83,8 @@ pub fn attempt_login(file_path: &'static Path) -> bool {
     load_data.join().unwrap();
     for (existing_username, existing_password) in rx_data.recv().unwrap().data() {
         if username == existing_username && password == existing_password {
-            return true;
+            return Ok(user);
         }
     }
-    false
+    Err(String::from("Invalid username or password"))
 }

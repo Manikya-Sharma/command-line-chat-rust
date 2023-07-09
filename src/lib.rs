@@ -1,9 +1,10 @@
 //! A chat system which asks user to login/signup before messaging
 
+use rpassword;
 use std::io::{self, Write};
 pub mod login;
 pub mod signup;
-use rpassword;
+pub mod user_interface;
 
 /// struct storing all the information about current user
 #[derive(Debug)]

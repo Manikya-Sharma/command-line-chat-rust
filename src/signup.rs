@@ -1,4 +1,4 @@
-use super::{login::ExistingData, user_input};
+use super::{login::ExistingData, user_input, User};
 use regex::Regex;
 use std::fs;
 use std::path::Path;
@@ -25,12 +25,12 @@ fn check_valid_password(password: &str) -> bool {
     re.is_match(password)
 }
 
-pub fn user_signup() -> Result<(), String> {
+pub fn user_signup() -> Result<User, String> {
     // caching existing user data
     let mut data = ExistingData::new();
     let (tx_data, rx_data) = mpsc::channel();
     let load_data = thread::spawn(move || {
-        data.update(Path::new("user_data.txt"));
+        data.update(Path::new("user_data.csv"));
         tx_data.send(data).unwrap();
     });
     // take user input
@@ -52,7 +52,7 @@ pub fn user_signup() -> Result<(), String> {
         for (username, password) in updated_data.data() {
             upstream.push_str(&format!("{}, {}\n", username, password))
         }
-        fs::write("user_data.txt", upstream).expect("Unable to write");
-        Ok(())
+        fs::write("user_data.csv", upstream).expect("Unable to write");
+        Ok(user)
     }
 }
