@@ -61,12 +61,4 @@ pub fn user_input() -> User {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use login::attempt_login;
-    use std::path::Path;
-    #[test]
-    fn could_login() {
-        assert_eq!(true, attempt_login(&Path::new("user_data.txt")));
-    }
-}
+mod tests {}

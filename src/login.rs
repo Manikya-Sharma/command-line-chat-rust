@@ -49,8 +49,7 @@ impl ExistingData {
 /// use my_app::{User, login::attempt_login};
 /// fn main() {
 ///     let path = Path::new("user_data.txt");
-///     let user = User::new("username", "password");
-///     if attempt_login(&user, &path) {
+///     if attempt_login(&path) {
 ///         println!("Login successful");
 ///     } else {
 ///         println!("Could not login");
