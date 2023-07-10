@@ -28,7 +28,7 @@ impl ExistingData {
             }
         };
         for line in file.lines() {
-            match line.split_once(",") {
+            match line.split_once("~") {
                 Some((username, password)) => {
                     self.data
                         .push((username.trim().to_string(), password.trim().to_string()));

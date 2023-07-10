@@ -1,6 +1,6 @@
-use super::User;
-use std::io;
-use std::{fs::read_to_string, io::ErrorKind, path::Path};
+use super::{login::ExistingData, User};
+use std::io::{self};
+use std::{fs, io::ErrorKind, path::Path};
 use std::{sync::mpsc, thread};
 
 struct Messages {
@@ -15,7 +15,7 @@ impl Messages {
     }
 
     fn fetch_messages(&mut self, path: &Path) {
-        let file = match read_to_string(path) {
+        let file = match fs::read_to_string(path) {
             Ok(file) => file,
             Err(e) => {
                 if e.kind() == ErrorKind::NotFound {
@@ -26,7 +26,11 @@ impl Messages {
             }
         };
         for line in file.lines() {
-            let data: Vec<&str> = line.split(",").collect();
+            let data: Vec<&str> = line.split("~").collect();
+            if data.len() < 3 {
+                // Must be an empty line
+                continue;
+            }
             let from = data[0];
             let to = data[1];
             let message = data[2];
@@ -41,10 +45,22 @@ impl Messages {
     fn show_received_messages(&self, username: &str) {
         for (from, to, message) in &self.message_data {
             if username == to {
-                println!("Received from {from}: -");
+                println!("Received from `{from}`: -");
                 println!("{message}\n");
             }
         }
+    }
+
+    fn append_data(&mut self, from: String, to: String, message: String) {
+        self.message_data.push((from, to, message));
+    }
+
+    fn upload_data(&self) {
+        let mut upstream = String::new();
+        for (from, to, message) in &self.message_data {
+            upstream.push_str(&format!("{}~{}~{}\n", from, to, message))
+        }
+        fs::write("database.csv", upstream).expect("Unable to write");
     }
 }
 
@@ -59,12 +75,13 @@ pub fn ui_implement(user: &User) -> bool {
     });
 
     let current_option = menu();
+    message_handler.join().expect("Unable to finish fetching");
+    let mut messages_store = rx_messages.recv().expect("Could not accept data");
+
     if current_option == 1 {
-        message_handler.join().expect("Unable to finish fetching");
-        let messages_store = rx_messages.recv().expect("Could not accept data");
         messages_store.show_received_messages(&user.username());
     } else if current_option == 2 {
-        send_message();
+        send_message(&user.username(), &mut messages_store);
     } else if current_option == 3 {
         println!("Your password is {}", user.password());
     } else if current_option == 4 {
@@ -75,7 +92,50 @@ pub fn ui_implement(user: &User) -> bool {
     true
 }
 
-fn send_message() {}
+fn send_message(username: &str, messages_store: &mut Messages) {
+    let (tx_user_data, rx_user_data) = mpsc::channel();
+
+    let user_data_handler = thread::spawn(move || {
+        let mut complete_user_data = ExistingData::new();
+        complete_user_data.update(&Path::new("user_data.csv"));
+        tx_user_data
+            .send(complete_user_data)
+            .expect("Could not send data");
+    });
+
+    let mut to_username = String::new();
+    println!("Whom to refer?");
+    io::stdin()
+        .read_line(&mut to_username)
+        .expect("Could not read line");
+    let to_username = to_username.trim();
+
+    user_data_handler.join().expect("Could not fetch data");
+    let data = rx_user_data.recv().expect("Could not receive data");
+    let mut flag = false;
+    for (username, _) in data.data() {
+        if &to_username == username {
+            flag = true;
+            break;
+        }
+    }
+    if !flag {
+        println!("No such user found")
+    } else {
+        let mut message = String::new();
+        println!("Please enter the message(press enter to stop typing):-");
+        io::stdin()
+            .read_line(&mut message)
+            .expect("Could not read line");
+        let message = message.trim();
+        messages_store.append_data(
+            username.to_string(),
+            to_username.to_string(),
+            message.to_string(),
+        );
+        messages_store.upload_data();
+    }
+}
 
 fn menu() -> u8 {
     let mut input = String::new();

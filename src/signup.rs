@@ -50,7 +50,7 @@ pub fn user_signup() -> Result<User, String> {
         updated_data.append_custom_data((username.to_string(), password.to_string()));
         let mut upstream = String::new();
         for (username, password) in updated_data.data() {
-            upstream.push_str(&format!("{}, {}\n", username, password))
+            upstream.push_str(&format!("{}~{}\n", username, password))
         }
         fs::write("user_data.csv", upstream).expect("Unable to write");
         Ok(user)
