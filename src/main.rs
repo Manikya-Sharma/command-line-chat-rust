@@ -3,16 +3,16 @@ use std::io::{self, Write};
 use std::path::Path;
 
 fn main() {
-    println!("Welcome to the Messaging App!");
+    println!("\n=================Welcome to the Messaging App!==============");
     println!("Please enter the option");
     let user = implement_login_signup_loop();
     if let Some(user) = user {
         // None case should never occur
         let mut run = true;
-        println!("Welcome {}", user.username());
+        println!("\nWelcome {}!", user.username());
         while run {
             let (now_run, repeat) = ui_implement(&user);
-            run =now_run;
+            run = now_run;
             if repeat {
                 main();
             }
@@ -21,9 +21,9 @@ fn main() {
 }
 
 fn show_menu() {
-    println!("1. Signup (1)");
+    println!("\n1. Signup (1)");
     println!("2. Login (2)");
-    println!("3. Quit (3)");
+    println!("3. Quit (3)\n");
 }
 
 fn take_menu_input() -> u8 {
