@@ -64,7 +64,7 @@ impl Messages {
     }
 }
 
-pub fn ui_implement(user: &User) -> bool {
+pub fn ui_implement(user: &User) -> (bool, bool) {
     let (tx_messages, rx_messages) = mpsc::channel();
     let message_handler = thread::spawn(move || {
         let mut messages_store = Messages::new();
@@ -85,11 +85,13 @@ pub fn ui_implement(user: &User) -> bool {
     } else if current_option == 3 {
         println!("Your password is {}", user.password());
     } else if current_option == 4 {
-        return false;
+        return (false, true);
+    } else if current_option == 5 {
+        return (false, false);
     } else {
         println!("Please enter a valid option");
     }
-    true
+    (true, false)
 }
 
 fn send_message(username: &str, messages_store: &mut Messages) {
@@ -142,7 +144,8 @@ fn menu() -> u8 {
     println!("1. Show received messages (1)");
     println!("2. New message (2)");
     println!("3. Show password (3)");
-    println!("4. Quit (4)");
+    println!("4. Log out (4)");
+    println!("5. Quit (5)");
     io::stdin()
         .read_line(&mut input)
         .expect("Could not read line");

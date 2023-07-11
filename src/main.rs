@@ -3,53 +3,19 @@ use std::io::{self, Write};
 use std::path::Path;
 
 fn main() {
-    let path = Path::new("user_data.csv");
-    let login_attempts: u8 = 3;
-    let current_user: Option<User>;
-
     println!("Welcome to the Messaging App!");
     println!("Please enter the option");
-
-    'login_signup: loop {
-        show_menu();
-        let current_option = take_menu_input();
-
-        if current_option == 1 {
-            loop {
-                match signup() {
-                    Some(user) => {
-                        current_user = Some(user);
-                        break 'login_signup;
-                    }
-                    None => (),
-                }
-            }
-        } else if current_option == 2 {
-            for attempt in 1..=login_attempts {
-                match login(&path) {
-                    Some(user) => {
-                        current_user = Some(user);
-                        break 'login_signup;
-                    }
-                    None => println!(
-                        "Wrong username/password, attempts left: {}",
-                        login_attempts - attempt
-                    ),
-                }
-            }
-        } else if current_option == 3 {
-            println!("Good Bye!");
-            return;
-        } else {
-            println!("Please enter a valid option");
-        }
-    }
-    // None case should never occur
-    if let Some(user) = current_user {
+    let user = implement_login_signup_loop();
+    if let Some(user) = user {
+        // None case should never occur
         let mut run = true;
         println!("Welcome {}", user.username());
         while run {
-            run = ui_implement(&user);
+            let (now_run, repeat) = ui_implement(&user);
+            run =now_run;
+            if repeat {
+                main();
+            }
         }
     }
 }
@@ -94,6 +60,41 @@ fn login(path: &'static Path) -> Option<User> {
         Err(e) => {
             println!("{}", e);
             return None;
+        }
+    }
+}
+
+fn implement_login_signup_loop() -> Option<User> {
+    show_menu();
+    let path = Path::new("user_data.csv");
+    let login_attempts: u8 = 3;
+
+    loop {
+        let current_option = take_menu_input();
+
+        if current_option == 1 {
+            loop {
+                if let Some(user) = signup() {
+                    return Some(user);
+                }
+            }
+        } else if current_option == 2 {
+            for attempt in 1..=login_attempts {
+                match login(&path) {
+                    Some(user) => {
+                        return Some(user);
+                    }
+                    None => println!(
+                        "Wrong username/password, attempts left: {}",
+                        login_attempts - attempt
+                    ),
+                }
+            }
+        } else if current_option == 3 {
+            println!("Good Bye!");
+            return None;
+        } else {
+            println!("Please enter a valid option");
         }
     }
 }
