@@ -2,6 +2,7 @@ use super::{login::ExistingData, User};
 use std::io::{self};
 use std::{fs, io::ErrorKind, path::Path};
 use std::{sync::mpsc, thread};
+use colored::*;
 
 struct Messages {
     message_data: Vec<(String, String, String)>,
@@ -45,8 +46,8 @@ impl Messages {
     fn show_received_messages(&self, username: &str) {
         for (from, to, message) in &self.message_data {
             if username == to {
-                println!("->Received from `{from}`: -");
-                println!("{message}\n");
+                println!("{} `{from}`: -", "->Recieved from".magenta());
+                println!("{}\n", message.green());
             }
         }
     }
@@ -89,7 +90,7 @@ pub fn ui_implement(user: &User) -> (bool, bool) {
     } else if current_option == 5 {
         return (false, false);
     } else {
-        println!("Please enter a valid option");
+        println!("{}", "Please enter a valid option".red());
     }
     (true, false)
 }
@@ -122,7 +123,7 @@ fn send_message(username: &str, messages_store: &mut Messages) {
         }
     }
     if !flag {
-        println!("**** No such user found ****")
+        println!("{}", "No such user found".red());
     } else {
         let mut message = String::new();
         println!("Please enter the message(press enter to stop typing):-");
@@ -141,11 +142,11 @@ fn send_message(username: &str, messages_store: &mut Messages) {
 
 fn menu() -> u8 {
     let mut input = String::new();
-    println!("\n1. Show received messages (1)");
-    println!("2. New message (2)");
-    println!("3. Show password (3)");
-    println!("4. Log out (4)");
-    println!("5. Quit (5)\n");
+    println!("{}", "\n1. Show received messages (1)");
+    println!("{}", "2. New message (2)");
+    println!("{}", "3. Show password (3)");
+    println!("{}", "4. Log out (4)");
+    println!("{}", "5. Quit (5)\n");
     io::stdin()
         .read_line(&mut input)
         .expect("Could not read line");

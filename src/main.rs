@@ -1,15 +1,16 @@
 use my_app::{login::attempt_login, signup::user_signup, user_interface::ui_implement, User};
 use std::io::{self, Write};
 use std::path::Path;
+use colored::*;
 
 fn main() {
-    println!("\n=================Welcome to the Messaging App!==============");
-    println!("Please enter the option");
+    println!("{}", "\n=================Welcome to the Messaging App!==============".cyan());
+    println!("{}", "Please enter the option".cyan());
     let user = implement_login_signup_loop();
     if let Some(user) = user {
         // None case should never occur
         let mut run = true;
-        println!("\nWelcome {}!", user.username());
+        println!("{} {}!","\nWelcome".cyan(), user.username().cyan().bold());
         while run {
             let (now_run, repeat) = ui_implement(&user);
             run = now_run;
@@ -21,9 +22,9 @@ fn main() {
 }
 
 fn show_menu() {
-    println!("\n1. Signup (1)");
-    println!("2. Login (2)");
-    println!("3. Quit (3)\n");
+    println!("{}", "\n1. Signup (1)");
+    println!("{}", "2. Login (2)");
+    println!("{}", "3. Quit (3)\n");
 }
 
 fn take_menu_input() -> u8 {
@@ -46,7 +47,7 @@ fn signup() -> Option<User> {
             return Some(user);
         }
         Err(st) => {
-            println!("Error: {}", st);
+            println!("{} {}", "Error:".red(), st);
             return None;
         }
     }
@@ -58,7 +59,7 @@ fn login(path: &'static Path) -> Option<User> {
             return Some(user);
         }
         Err(e) => {
-            println!("{}", e);
+            println!("{}", e.red());
             return None;
         }
     }
@@ -85,16 +86,17 @@ fn implement_login_signup_loop() -> Option<User> {
                         return Some(user);
                     }
                     None => println!(
-                        "Wrong username/password, attempts left: {}",
+                        "{} {}",
+"Wrong username/password, attempts left:".red(),
                         login_attempts - attempt
                     ),
                 }
             }
         } else if current_option == 3 {
-            println!("Good Bye!");
+            println!("{}", "Good Bye!".green());
             return None;
         } else {
-            println!("Please enter a valid option");
+            println!("{}", "Please enter a valid option".red());
         }
     }
 }
