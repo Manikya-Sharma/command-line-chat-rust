@@ -1,12 +1,13 @@
 use super::{login::ExistingData, user_input, User};
 use regex::Regex;
+use serde_json::json;
 use std::fs;
 use std::path::Path;
 use std::{sync::mpsc, thread};
 
 fn check_uniqueness(username: &str, data: &ExistingData) -> bool {
-    for (existing_username, _) in data.data() {
-        if existing_username == username {
+    for existing_user in data.data() {
+        if existing_user.username() == username {
             return false;
         }
     }
@@ -30,7 +31,7 @@ pub fn user_signup() -> Result<User, String> {
     let mut data = ExistingData::new();
     let (tx_data, rx_data) = mpsc::channel();
     let load_data = thread::spawn(move || {
-        data.update(Path::new("user_data.csv"));
+        data.update(Path::new("user_data.json"));
         tx_data.send(data).unwrap();
     });
     // take user input
@@ -47,12 +48,20 @@ pub fn user_signup() -> Result<User, String> {
     } else if !check_valid_password(password) {
         return Err(String::from("Invalid password"));
     } else {
-        updated_data.append_custom_data((username.to_string(), password.to_string()));
-        let mut upstream = String::new();
-        for (username, password) in updated_data.data() {
-            upstream.push_str(&format!("{}~{}\n", username, password))
+        updated_data.append_custom_data(User {
+            username: username.to_string(),
+            password: password.to_string(),
+        });
+        let mut upstream = String::from("[");
+        for user in updated_data.data() {
+            let user_json = json!(user).to_string();
+
+            upstream.push_str(&format!("{},\n", user_json))
         }
-        fs::write("user_data.csv", upstream).expect("Unable to write");
+        let mut upstream = String::from(upstream.trim());
+        upstream.pop();
+        upstream.push_str("]");
+        fs::write("user_data.json", upstream).expect("Unable to write");
         Ok(user)
     }
 }

@@ -1,16 +1,19 @@
+use colored::*;
 use my_app::{login::attempt_login, signup::user_signup, user_interface::ui_implement, User};
 use std::io::{self, Write};
 use std::path::Path;
-use colored::*;
 
 fn main() {
-    println!("{}", "\n=================Welcome to the Messaging App!==============".cyan());
+    println!(
+        "{}",
+        "\n=================Welcome to the Messaging App!==============".cyan()
+    );
     println!("{}", "Please enter the option".cyan());
     let user = implement_login_signup_loop();
     if let Some(user) = user {
         // None case should never occur
         let mut run = true;
-        println!("{} {}!","\nWelcome".cyan(), user.username().cyan().bold());
+        println!("{} {}!", "\nWelcome".cyan(), user.username().cyan().bold());
         while run {
             let (now_run, repeat) = ui_implement(&user);
             run = now_run;
@@ -67,7 +70,7 @@ fn login(path: &'static Path) -> Option<User> {
 
 fn implement_login_signup_loop() -> Option<User> {
     show_menu();
-    let path = Path::new("user_data.csv");
+    let path = Path::new("user_data.json");
     let login_attempts: u8 = 3;
 
     loop {
@@ -87,7 +90,7 @@ fn implement_login_signup_loop() -> Option<User> {
                     }
                     None => println!(
                         "{} {}",
-"Wrong username/password, attempts left:".red(),
+                        "Wrong username/password, attempts left:".red(),
                         login_attempts - attempt
                     ),
                 }

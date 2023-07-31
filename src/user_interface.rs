@@ -1,18 +1,26 @@
+use super::account_modifications::{change_password, change_username, delete_account};
 use super::{login::ExistingData, User};
+use colored::*;
+use serde_derive::{Deserialize, Serialize};
+use serde_json::json;
 use std::io::{self};
 use std::{fs, io::ErrorKind, path::Path};
 use std::{sync::mpsc, thread};
-use colored::*;
+
+#[derive(Serialize, Deserialize)]
+struct Message {
+    message: String,
+    from: String,
+    to: String,
+}
 
 struct Messages {
-    message_data: Vec<(String, String, String)>,
+    data: Vec<Message>,
 }
 
 impl Messages {
     fn new() -> Messages {
-        Messages {
-            message_data: Vec::new(),
-        }
+        Messages { data: Vec::new() }
     }
 
     fn fetch_messages(&mut self, path: &Path) {
@@ -26,50 +34,59 @@ impl Messages {
                 }
             }
         };
-        for line in file.lines() {
-            let data: Vec<&str> = line.split("~").collect();
-            if data.len() < 3 {
-                // Must be an empty line
-                continue;
-            }
-            let from = data[0];
-            let to = data[1];
-            let message = data[2];
-            self.message_data.push((
-                from.trim().to_string(),
-                to.trim().to_string(),
-                message.trim().to_string(),
-            ));
-        }
+
+        self.data = serde_json::from_str(file.as_str()).expect("There was some problem in data");
+
+        // for line in file.lines() {
+        //     let data: Vec<&str> = line.split("~").collect();
+        //     if data.len() < 3 {
+        //         // Must be an empty line
+        //         continue;
+        //     }
+        //     let from = data[0];
+        //     let to = data[1];
+        //     let message = data[2];
+        //     self.data.push(Message {
+        //         from: from.trim().to_string(),
+        //         to: to.trim().to_string(),
+        //         message: message.trim().to_string(),
+        //     });
+        // }
     }
 
     fn show_received_messages(&self, username: &str) {
-        for (from, to, message) in &self.message_data {
-            if username == to {
-                println!("{} `{from}`: -", "->Recieved from".magenta());
-                println!("{}\n", message.green());
+        for message in &self.data {
+            if username == message.to {
+                println!("{} `{}`: -", "->Recieved from".magenta(), message.from);
+                println!("{}\n", message.message.green());
             }
         }
     }
 
-    fn append_data(&mut self, from: String, to: String, message: String) {
-        self.message_data.push((from, to, message));
+    fn append_data(&mut self, message: Message) {
+        self.data.push(message);
     }
 
     fn upload_data(&self) {
-        let mut upstream = String::new();
-        for (from, to, message) in &self.message_data {
-            upstream.push_str(&format!("{}~{}~{}\n", from, to, message))
+        let mut upstream = String::from("[");
+        for message in &self.data {
+            let json_message = json!(message);
+
+            upstream.push_str(&format!("{},\n", json_message.to_string()))
         }
-        fs::write("database.csv", upstream).expect("Unable to write");
+        let mut upstream = String::from(upstream.trim());
+        upstream.pop(); // remove trailing comma
+        upstream.push_str("]");
+        fs::write("database.json", upstream).expect("Unable to write");
     }
 }
 
 pub fn ui_implement(user: &User) -> (bool, bool) {
+    // returns continue running and current signed up state
     let (tx_messages, rx_messages) = mpsc::channel();
     let message_handler = thread::spawn(move || {
         let mut messages_store = Messages::new();
-        messages_store.fetch_messages(&Path::new("database.csv"));
+        messages_store.fetch_messages(&Path::new("database.json"));
         tx_messages
             .send(messages_store)
             .expect("Could not transfer data");
@@ -88,6 +105,8 @@ pub fn ui_implement(user: &User) -> (bool, bool) {
     } else if current_option == 4 {
         return (false, true);
     } else if current_option == 5 {
+        show_settings(&user);
+    } else if current_option == 6 {
         return (false, false);
     } else {
         println!("{}", "Please enter a valid option".red());
@@ -100,7 +119,7 @@ fn send_message(username: &str, messages_store: &mut Messages) {
 
     let user_data_handler = thread::spawn(move || {
         let mut complete_user_data = ExistingData::new();
-        complete_user_data.update(&Path::new("user_data.csv"));
+        complete_user_data.update(&Path::new("user_data.json"));
         tx_user_data
             .send(complete_user_data)
             .expect("Could not send data");
@@ -116,8 +135,8 @@ fn send_message(username: &str, messages_store: &mut Messages) {
     user_data_handler.join().expect("Could not fetch data");
     let data = rx_user_data.recv().expect("Could not receive data");
     let mut flag = false;
-    for (username, _) in data.data() {
-        if &to_username == username {
+    for user in data.data() {
+        if &to_username == &user.username() {
             flag = true;
             break;
         }
@@ -131,12 +150,32 @@ fn send_message(username: &str, messages_store: &mut Messages) {
             .read_line(&mut message)
             .expect("Could not read line");
         let message = message.trim();
-        messages_store.append_data(
-            username.to_string(),
-            to_username.to_string(),
-            message.to_string(),
-        );
+        messages_store.append_data(Message {
+            from: username.to_string(),
+            to: to_username.to_string(),
+            message: message.to_string(),
+        });
         messages_store.upload_data();
+    }
+}
+
+fn show_settings(user: &User) {
+    let mut input = String::new();
+    println!("{}", "1. Change username(1)".red());
+    println!("{}", "2. Change password(2)".red());
+    println!("{}", "3. Delete Account(3)".red());
+    io::stdin()
+        .read_line(&mut input)
+        .expect("Could not read line");
+    let input = input.trim();
+    if input == String::from("1") {
+        change_username(&user);
+    } else if input == String::from("2") {
+        change_password(&user);
+    } else if input == String::from("3") {
+        delete_account(&user);
+    } else {
+        println!("Please enter a valid option");
     }
 }
 
@@ -146,7 +185,8 @@ fn menu() -> u8 {
     println!("{}", "2. New message (2)");
     println!("{}", "3. Show password (3)");
     println!("{}", "4. Log out (4)");
-    println!("{}", "5. Quit (5)\n");
+    println!("{}", "5. Account Settings (5)");
+    println!("{}", "6. Quit (6)\n");
     io::stdin()
         .read_line(&mut input)
         .expect("Could not read line");

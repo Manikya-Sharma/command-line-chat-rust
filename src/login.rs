@@ -7,13 +7,14 @@ use std::path::Path;
 use std::{sync::mpsc, thread};
 
 // meant to store data as a cache for threading
+
 pub struct ExistingData {
-    data: Vec<(String, String)>,
+    data: Vec<User>,
 }
 
 impl ExistingData {
     pub fn new() -> ExistingData {
-        ExistingData { data: Vec::new() }
+        ExistingData { data: vec![] }
     }
     pub fn update(&mut self, path: &Path) {
         let file = match read_to_string(path) {
@@ -27,20 +28,23 @@ impl ExistingData {
                 }
             }
         };
-        for line in file.lines() {
-            match line.split_once("~") {
-                Some((username, password)) => {
-                    self.data
-                        .push((username.trim().to_string(), password.trim().to_string()));
-                }
-                None => (),
-            }
-        }
+
+        self.data = serde_json::from_str(file.as_str()).expect("There was some problem in data");
+
+        // for line in file.lines() {
+        //     match line.split_once("~") {
+        //         Some((username, password)) => {
+        //             self.data
+        //                 .push((username.trim().to_string(), password.trim().to_string()));
+        //         }
+        //         None => (),
+        //     }
+        // }
     }
-    pub fn data(&self) -> &Vec<(String, String)> {
+    pub fn data(&self) -> &Vec<User> {
         &self.data
     }
-    pub fn append_custom_data(&mut self, data: (String, String)) {
+    pub fn append_custom_data(&mut self, data: User) {
         self.data.push(data);
     }
 }
@@ -61,7 +65,7 @@ impl ExistingData {
 /// use std::path::Path;
 /// use my_app::{User, login::attempt_login};
 /// fn main() {
-///     let path = Path::new("user_data.csv");
+///     let path = Path::new("user_data.json");
 ///     if attempt_login(&path) {
 ///         println!("Login successful");
 ///     } else {
@@ -81,8 +85,8 @@ pub fn attempt_login(file_path: &'static Path) -> Result<User, String> {
     let password = user.password();
 
     load_data.join().unwrap();
-    for (existing_username, existing_password) in rx_data.recv().unwrap().data() {
-        if username == existing_username && password == existing_password {
+    for existing_user in rx_data.recv().unwrap().data() {
+        if username == existing_user.username && password == existing_user.password {
             return Ok(user);
         }
     }
