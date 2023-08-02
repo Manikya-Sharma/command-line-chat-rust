@@ -1,7 +1,5 @@
-use super::{login::ExistingData, user_input, User};
+use super::{user_input, ExistingData, User};
 use regex::Regex;
-use serde_json::json;
-use std::fs;
 use std::path::Path;
 use std::{sync::mpsc, thread};
 
@@ -48,20 +46,12 @@ pub fn user_signup() -> Result<User, String> {
     } else if !check_valid_password(password) {
         return Err(String::from("Invalid password"));
     } else {
-        updated_data.append_custom_data(User {
-            username: username.to_string(),
-            password: password.to_string(),
-        });
-        let mut upstream = String::from("[");
-        for user in updated_data.data() {
-            let user_json = json!(user).to_string();
-
-            upstream.push_str(&format!("{},\n", user_json))
-        }
-        let mut upstream = String::from(upstream.trim());
-        upstream.pop();
-        upstream.push_str("]");
-        fs::write("user_data.json", upstream).expect("Unable to write");
+        updated_data
+            .append_custom_data(User {
+                username: username.to_string(),
+                password: password.to_string(),
+            })
+            .expect("Could not signup");
         Ok(user)
     }
 }

@@ -1,5 +1,5 @@
 use super::account_modifications::{change_password, change_username, delete_account};
-use super::{login::ExistingData, User};
+use super::{ExistingData, User};
 use colored::*;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::json;
@@ -36,22 +36,6 @@ impl Messages {
         };
 
         self.data = serde_json::from_str(file.as_str()).expect("There was some problem in data");
-
-        // for line in file.lines() {
-        //     let data: Vec<&str> = line.split("~").collect();
-        //     if data.len() < 3 {
-        //         // Must be an empty line
-        //         continue;
-        //     }
-        //     let from = data[0];
-        //     let to = data[1];
-        //     let message = data[2];
-        //     self.data.push(Message {
-        //         from: from.trim().to_string(),
-        //         to: to.trim().to_string(),
-        //         message: message.trim().to_string(),
-        //     });
-        // }
     }
 
     fn show_received_messages(&self, username: &str) {
@@ -92,31 +76,7 @@ pub fn ui_implement(user: &User) -> (bool, bool) {
             .expect("Could not transfer data");
     });
 
-    let current_option = menu();
-    message_handler.join().expect("Unable to finish fetching");
-    let mut messages_store = rx_messages.recv().expect("Could not accept data");
-
-    if current_option == 1 {
-        messages_store.show_received_messages(&user.username());
-    } else if current_option == 2 {
-        send_message(&user.username(), &mut messages_store);
-    } else if current_option == 3 {
-        println!("Your password is {}", user.password());
-    } else if current_option == 4 {
-        return (false, true);
-    } else if current_option == 5 {
-        show_settings(&user);
-    } else if current_option == 6 {
-        return (false, false);
-    } else {
-        println!("{}", "Please enter a valid option".red());
-    }
-    (true, false)
-}
-
-fn send_message(username: &str, messages_store: &mut Messages) {
     let (tx_user_data, rx_user_data) = mpsc::channel();
-
     let user_data_handler = thread::spawn(move || {
         let mut complete_user_data = ExistingData::new();
         complete_user_data.update(&Path::new("user_data.json"));
@@ -125,6 +85,35 @@ fn send_message(username: &str, messages_store: &mut Messages) {
             .expect("Could not send data");
     });
 
+    let current_option = menu();
+    message_handler.join().expect("Unable to finish fetching");
+    user_data_handler
+        .join()
+        .expect("Could not fetch users data");
+
+    let mut messages_store = rx_messages.recv().expect("Could not accept data");
+    let mut users_data = rx_user_data.recv().expect("Could not receive data");
+
+    if current_option == 1 {
+        messages_store.show_received_messages(&user.username());
+    } else if current_option == 2 {
+        send_message(&user.username(), &mut messages_store, &users_data);
+    } else if current_option == 3 {
+        return (false, true);
+    } else if current_option == 4 {
+        let logout = show_settings(&user, &mut users_data);
+        if logout {
+            return (false, logout);
+        }
+    } else if current_option == 5 {
+        return (false, false);
+    } else {
+        println!("{}", "Please enter a valid option".red());
+    }
+    (true, false)
+}
+
+fn send_message(username: &str, messages_store: &mut Messages, data: &ExistingData) {
     let mut to_username = String::new();
     println!("Whom to refer?");
     io::stdin()
@@ -132,8 +121,6 @@ fn send_message(username: &str, messages_store: &mut Messages) {
         .expect("Could not read line");
     let to_username = to_username.trim();
 
-    user_data_handler.join().expect("Could not fetch data");
-    let data = rx_user_data.recv().expect("Could not receive data");
     let mut flag = false;
     for user in data.data() {
         if &to_username == &user.username() {
@@ -159,34 +146,39 @@ fn send_message(username: &str, messages_store: &mut Messages) {
     }
 }
 
-fn show_settings(user: &User) {
+fn show_settings(user: &User, data: &mut ExistingData) -> bool {
+    // returns whether to logout or not
     let mut input = String::new();
     println!("{}", "1. Change username(1)".red());
     println!("{}", "2. Change password(2)".red());
     println!("{}", "3. Delete Account(3)".red());
+    println!("{}", "4. Cancel".green());
     io::stdin()
         .read_line(&mut input)
         .expect("Could not read line");
     let input = input.trim();
     if input == String::from("1") {
-        change_username(&user);
+        change_username(&user, data);
     } else if input == String::from("2") {
-        change_password(&user);
+        change_password(&user, data);
     } else if input == String::from("3") {
-        delete_account(&user);
+        delete_account(&user, data);
+        return true;
+    } else if input == String::from("4") {
+        return false;
     } else {
         println!("Please enter a valid option");
     }
+    false
 }
 
 fn menu() -> u8 {
     let mut input = String::new();
     println!("{}", "\n1. Show received messages (1)");
     println!("{}", "2. New message (2)");
-    println!("{}", "3. Show password (3)");
-    println!("{}", "4. Log out (4)");
-    println!("{}", "5. Account Settings (5)");
-    println!("{}", "6. Quit (6)\n");
+    println!("{}", "3. Log out (3)");
+    println!("{}", "4. Account Settings (4)");
+    println!("{}", "5. Quit (5)\n");
     io::stdin()
         .read_line(&mut input)
         .expect("Could not read line");

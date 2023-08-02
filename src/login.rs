@@ -1,53 +1,11 @@
 //! Module to implement login functionality for already signed up users
 
-use super::{user_input, User};
-use std::fs::read_to_string;
-use std::io::ErrorKind;
+use super::{user_input, ExistingData, User};
+
 use std::path::Path;
 use std::{sync::mpsc, thread};
 
 // meant to store data as a cache for threading
-
-pub struct ExistingData {
-    data: Vec<User>,
-}
-
-impl ExistingData {
-    pub fn new() -> ExistingData {
-        ExistingData { data: vec![] }
-    }
-    pub fn update(&mut self, path: &Path) {
-        let file = match read_to_string(path) {
-            Ok(file) => file,
-            Err(e) => {
-                if e.kind() == ErrorKind::NotFound {
-                    // no need to cache
-                    return;
-                } else {
-                    panic!("Could not read file");
-                }
-            }
-        };
-
-        self.data = serde_json::from_str(file.as_str()).expect("There was some problem in data");
-
-        // for line in file.lines() {
-        //     match line.split_once("~") {
-        //         Some((username, password)) => {
-        //             self.data
-        //                 .push((username.trim().to_string(), password.trim().to_string()));
-        //         }
-        //         None => (),
-        //     }
-        // }
-    }
-    pub fn data(&self) -> &Vec<User> {
-        &self.data
-    }
-    pub fn append_custom_data(&mut self, data: User) {
-        self.data.push(data);
-    }
-}
 
 /// Reads data from data file and tells if user is present or not
 ///
