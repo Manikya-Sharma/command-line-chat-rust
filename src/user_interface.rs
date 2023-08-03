@@ -3,7 +3,7 @@ use super::{ExistingData, User};
 use colored::*;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::json;
-use std::io::{self};
+use std::io::{self, Write};
 use std::{fs, io::ErrorKind, path::Path};
 use std::{sync::mpsc, thread};
 
@@ -153,6 +153,8 @@ fn show_settings(user: &User, data: &mut ExistingData) -> bool {
     println!("{}", "2. Change password(2)".red());
     println!("{}", "3. Delete Account(3)".red());
     println!("{}", "4. Cancel".green());
+    print!("=>");
+    io::stdout().flush().unwrap();
     io::stdin()
         .read_line(&mut input)
         .expect("Could not read line");
@@ -163,13 +165,13 @@ fn show_settings(user: &User, data: &mut ExistingData) -> bool {
         change_password(&user, data);
     } else if input == String::from("3") {
         delete_account(&user, data);
-        return true;
     } else if input == String::from("4") {
         return false;
     } else {
         println!("Please enter a valid option");
+        return false;
     }
-    false
+    true
 }
 
 fn menu() -> u8 {
@@ -179,6 +181,8 @@ fn menu() -> u8 {
     println!("{}", "3. Log out (3)");
     println!("{}", "4. Account Settings (4)");
     println!("{}", "5. Quit (5)\n");
+    print!("=>");
+    io::stdout().flush().unwrap();
     io::stdin()
         .read_line(&mut input)
         .expect("Could not read line");
