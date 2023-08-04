@@ -4,20 +4,18 @@ use std::io;
 
 pub fn change_username(user: &User, data: &mut ExistingData) {
     println!("Please confirm your identity");
-    loop {
-        let mut pwd = String::new();
-        println!("Enter your password :-");
-        io::stdin()
-            .read_line(&mut pwd)
-            .expect("Could not read line");
-        pwd = String::from(pwd.trim());
-        if pwd == user.password() {
-            break;
-        } else {
-            println!("{}", "Invalid password, permission denied.".red());
-            return;
-        }
+
+    let mut pwd = String::new();
+    println!("Enter your password :-");
+    io::stdin()
+        .read_line(&mut pwd)
+        .expect("Could not read line");
+    pwd = String::from(pwd.trim());
+    if pwd != user.password() {
+        println!("{}", "Invalid password, permission denied.".red());
+        return;
     }
+
     let mut new_username = String::new();
     'outer: loop {
         new_username.clear();
@@ -48,20 +46,17 @@ pub fn change_username(user: &User, data: &mut ExistingData) {
 }
 
 pub fn change_password(user: &User, data: &mut ExistingData) {
-    loop {
-        let mut us_name = String::new();
-        println!("Enter your username to confirm :-");
-        io::stdin()
-            .read_line(&mut us_name)
-            .expect("Could not read line");
-        us_name = String::from(us_name.trim());
-        if us_name == user.username() {
-            break;
-        } else {
-            println!("{}", "Invalid username, permission denied.".red());
-            return;
-        }
+    let mut us_name = String::new();
+    println!("Enter your username to confirm :-");
+    io::stdin()
+        .read_line(&mut us_name)
+        .expect("Could not read line");
+    us_name = String::from(us_name.trim());
+    if us_name != user.username() {
+        println!("{}", "Invalid username, permission denied.".red());
+        return;
     }
+
     let mut new_password = String::new();
     println!("Enter your new password");
     io::stdin()
@@ -79,20 +74,18 @@ pub fn change_password(user: &User, data: &mut ExistingData) {
 
 pub fn delete_account(user: &User, data: &mut ExistingData) {
     println!("Please confirm your identity");
-    loop {
-        let mut pwd = String::new();
-        println!("Enter your password :-");
-        io::stdin()
-            .read_line(&mut pwd)
-            .expect("Could not read line");
-        pwd = String::from(pwd.trim());
-        if pwd == user.password() {
-            break;
-        } else {
-            println!("{}", "Invalid password, permission denied.".red());
-            return;
-        }
+
+    let mut pwd = String::new();
+    println!("Enter your password :-");
+    io::stdin()
+        .read_line(&mut pwd)
+        .expect("Could not read line");
+    pwd = String::from(pwd.trim());
+    if pwd != user.password() {
+        println!("{}", "Invalid password, permission denied.".red());
+        return;
     }
+
     data.remove_data(String::from(user.username()))
         .expect("Could not delete account");
     println!("{}", "Account deleted successfully".green());

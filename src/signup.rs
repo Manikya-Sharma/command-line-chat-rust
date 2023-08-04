@@ -40,11 +40,11 @@ pub fn user_signup() -> Result<User, String> {
     load_data.join().unwrap();
     let mut updated_data = rx_data.recv().unwrap();
     if !check_uniqueness(username, &updated_data) {
-        return Err(String::from("Username not unique"));
+        Err(String::from("Username not unique"))
     } else if !check_valid_username(username) {
-        return Err(String::from("Invalid username"));
+        Err(String::from("Invalid username"))
     } else if !check_valid_password(password) {
-        return Err(String::from("Invalid password"));
+        Err(String::from("Invalid password"))
     } else {
         updated_data
             .append_custom_data(User {

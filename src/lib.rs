@@ -1,14 +1,15 @@
 //! A chat system which asks user to login/signup before messaging
 
-use rpassword;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::json;
-use std::fs::read_to_string;
-use std::io::Error;
-use std::io::ErrorKind;
-use std::io::Write;
-use std::path::Path;
-use std::{fs, io};
+use std::vec;
+use std::{
+    fs::{self, read_to_string},
+    io::Write,
+    io::{self, Error, ErrorKind},
+    path::Path,
+};
+
 pub mod account_modifications;
 pub mod login;
 pub mod signup;
@@ -46,6 +47,12 @@ pub struct ExistingData {
     data: Vec<User>,
 }
 
+impl Default for ExistingData {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ExistingData {
     pub fn new() -> ExistingData {
         ExistingData { data: vec![] }
@@ -79,7 +86,7 @@ impl ExistingData {
         }
         let mut upstream = String::from(upstream.trim());
         upstream.pop();
-        upstream.push_str("]");
+        upstream.push(']');
         fs::write("user_data.json", upstream)?;
         Ok(())
     }
@@ -97,7 +104,7 @@ impl ExistingData {
             }
             let mut upstream = String::from(upstream.trim());
             upstream.pop();
-            upstream.push_str("]");
+            upstream.push(']');
             fs::write("user_data.json", upstream)?;
             Ok(())
         } else {
@@ -116,7 +123,7 @@ impl ExistingData {
                 }
                 let mut upstream = String::from(upstream.trim());
                 upstream.pop();
-                upstream.push_str("]");
+                upstream.push(']');
                 fs::write("user_data.json", upstream)?;
                 break;
             }
@@ -126,17 +133,7 @@ impl ExistingData {
 }
 
 /// It is a wrapper function for taking input
-///
-/// # Examples: -
-///
-/// ```
-/// use my_app::user_input;
-/// use my_app::User;
-/// fn main() {
-///     let my_user = user_input();
-///     println!("Username: {}, Password: {}", my_user.username(), my_user.password());
-/// }
-/// ```
+
 pub fn user_input() -> User {
     let mut username = String::new();
     print!("Username: ");
@@ -148,9 +145,6 @@ pub fn user_input() -> User {
     let password = rpassword::prompt_password("Password: ").unwrap();
     User {
         username: username.to_string(),
-        password: password.to_string(),
+        password,
     }
 }
-
-#[cfg(test)]
-mod tests {}

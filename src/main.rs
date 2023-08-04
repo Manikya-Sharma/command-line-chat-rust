@@ -1,10 +1,15 @@
 use colored::*;
 use my_app::{login::attempt_login, signup::user_signup, user_interface::ui_implement, User};
-use std::io::{self, Write};
-use std::path::Path;
-use term_size;
+use std::{
+    io::{self, Write},
+    path::Path,
+};
 
 fn main() {
+    app();
+}
+
+fn app() {
     if let Some((w, _)) = term_size::dimensions() {
         println!(
             "\n{:=^width$}",
@@ -26,16 +31,16 @@ fn main() {
             let (now_run, repeat) = ui_implement(&user);
             run = now_run;
             if repeat {
-                main();
+                app();
             }
         }
     }
 }
 
 fn show_menu() {
-    println!("{}", "\n1. Signup (1)");
-    println!("{}", "2. Login (2)");
-    println!("{}", "3. Quit (3)\n");
+    println!("\n1. Signup (1)");
+    println!("2. Login (2)");
+    println!("3. Quit (3)\n");
 }
 
 fn take_menu_input() -> u8 {
@@ -45,33 +50,25 @@ fn take_menu_input() -> u8 {
     io::stdin()
         .read_line(&mut current_option)
         .expect("Could not read your input");
-    match current_option.trim().parse() {
-        Ok(num) => num,
-        // avoid panic
-        Err(_) => 0,
-    }
+    current_option.trim().parse().unwrap_or(0)
 }
 
 fn signup() -> Option<User> {
     match user_signup() {
-        Ok(user) => {
-            return Some(user);
-        }
+        Ok(user) => Some(user),
         Err(st) => {
             println!("{} {}", "Error:".red(), st);
-            return None;
+            None
         }
     }
 }
 
 fn login(path: &'static Path) -> Option<User> {
-    match attempt_login(&path) {
-        Ok(user) => {
-            return Some(user);
-        }
+    match attempt_login(path) {
+        Ok(user) => Some(user),
         Err(e) => {
             println!("{}", e.red());
-            return None;
+            None
         }
     }
 }
@@ -92,7 +89,7 @@ fn implement_login_signup_loop() -> Option<User> {
             }
         } else if current_option == 2 {
             for attempt in 1..=login_attempts {
-                match login(&path) {
+                match login(path) {
                     Some(user) => {
                         return Some(user);
                     }

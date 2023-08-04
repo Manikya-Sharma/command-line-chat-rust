@@ -1,10 +1,15 @@
-use super::account_modifications::{change_password, change_username, delete_account};
-use super::{ExistingData, User};
+use super::{
+    account_modifications::{change_password, change_username, delete_account},
+    ExistingData, User,
+};
 use colored::*;
 use serde_derive::{Deserialize, Serialize};
 use serde_json::json;
-use std::io::{self, Write};
-use std::{fs, io::ErrorKind, path::Path};
+use std::{
+    fs,
+    io::{self, ErrorKind, Write},
+    path::Path,
+};
 use std::{sync::mpsc, thread};
 
 #[derive(Serialize, Deserialize)]
@@ -56,11 +61,11 @@ impl Messages {
         for message in &self.data {
             let json_message = json!(message);
 
-            upstream.push_str(&format!("{},\n", json_message.to_string()))
+            upstream.push_str(&format!("{},\n", json_message))
         }
         let mut upstream = String::from(upstream.trim());
         upstream.pop(); // remove trailing comma
-        upstream.push_str("]");
+        upstream.push(']');
         fs::write("database.json", upstream).expect("Unable to write");
     }
 }
@@ -70,7 +75,7 @@ pub fn ui_implement(user: &User) -> (bool, bool) {
     let (tx_messages, rx_messages) = mpsc::channel();
     let message_handler = thread::spawn(move || {
         let mut messages_store = Messages::new();
-        messages_store.fetch_messages(&Path::new("database.json"));
+        messages_store.fetch_messages(Path::new("database.json"));
         tx_messages
             .send(messages_store)
             .expect("Could not transfer data");
@@ -79,7 +84,7 @@ pub fn ui_implement(user: &User) -> (bool, bool) {
     let (tx_user_data, rx_user_data) = mpsc::channel();
     let user_data_handler = thread::spawn(move || {
         let mut complete_user_data = ExistingData::new();
-        complete_user_data.update(&Path::new("user_data.json"));
+        complete_user_data.update(Path::new("user_data.json"));
         tx_user_data
             .send(complete_user_data)
             .expect("Could not send data");
@@ -95,13 +100,13 @@ pub fn ui_implement(user: &User) -> (bool, bool) {
     let mut users_data = rx_user_data.recv().expect("Could not receive data");
 
     if current_option == 1 {
-        messages_store.show_received_messages(&user.username());
+        messages_store.show_received_messages(user.username());
     } else if current_option == 2 {
-        send_message(&user.username(), &mut messages_store, &users_data);
+        send_message(user.username(), &mut messages_store, &users_data);
     } else if current_option == 3 {
         return (false, true);
     } else if current_option == 4 {
-        let logout = show_settings(&user, &mut users_data);
+        let logout = show_settings(user, &mut users_data);
         if logout {
             return (false, logout);
         }
@@ -123,7 +128,7 @@ fn send_message(username: &str, messages_store: &mut Messages, data: &ExistingDa
 
     let mut flag = false;
     for user in data.data() {
-        if &to_username == &user.username() {
+        if to_username == user.username() {
             flag = true;
             break;
         }
@@ -159,13 +164,13 @@ fn show_settings(user: &User, data: &mut ExistingData) -> bool {
         .read_line(&mut input)
         .expect("Could not read line");
     let input = input.trim();
-    if input == String::from("1") {
-        change_username(&user, data);
-    } else if input == String::from("2") {
-        change_password(&user, data);
-    } else if input == String::from("3") {
-        delete_account(&user, data);
-    } else if input == String::from("4") {
+    if input == "1" {
+        change_username(user, data);
+    } else if input == "2" {
+        change_password(user, data);
+    } else if input == "3" {
+        delete_account(user, data);
+    } else if input == "4" {
         return false;
     } else {
         println!("Please enter a valid option");
@@ -176,18 +181,15 @@ fn show_settings(user: &User, data: &mut ExistingData) -> bool {
 
 fn menu() -> u8 {
     let mut input = String::new();
-    println!("{}", "\n1. Show received messages (1)");
-    println!("{}", "2. New message (2)");
-    println!("{}", "3. Log out (3)");
-    println!("{}", "4. Account Settings (4)");
-    println!("{}", "5. Quit (5)\n");
+    println!("\n1. Show received messages (1)");
+    println!("2. New message (2)");
+    println!("3. Log out (3)");
+    println!("4. Account Settings (4)");
+    println!("5. Quit (5)\n");
     print!("=>");
     io::stdout().flush().unwrap();
     io::stdin()
         .read_line(&mut input)
         .expect("Could not read line");
-    match input.trim().parse() {
-        Ok(num) => num,
-        Err(_) => 0,
-    }
+    input.trim().parse().unwrap_or(0)
 }
