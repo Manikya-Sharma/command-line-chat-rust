@@ -20,7 +20,7 @@ fn check_valid_username(username: &str) -> bool {
 
 fn check_valid_password(password: &str) -> bool {
     // Minimum eight characters, at least one uppercase letter, one lowercase letter and one number:
-    let re = Regex::new("^[^\\s]+$").unwrap();
+    let re = Regex::new("^[^\\s]+$").unwrap(); // will never fail because hard-coded
     re.is_match(password)
 }
 

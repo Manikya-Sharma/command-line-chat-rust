@@ -1,10 +1,9 @@
 use super::{
     account_modifications::{change_password, change_username, delete_account},
-    ExistingData, User,
+    upload_data_as_json, ExistingData, LoopHandler, User,
 };
 use colored::*;
 use serde_derive::{Deserialize, Serialize};
-use serde_json::json;
 use std::{
     fs,
     io::{self, ErrorKind, Write},
@@ -46,7 +45,7 @@ impl Messages {
     fn show_received_messages(&self, username: &str) {
         for message in &self.data {
             if username == message.to {
-                println!("{} `{}`: -", "->Recieved from".magenta(), message.from);
+                println!("{} `{}`: -", "->Received from".magenta(), message.from);
                 println!("{}\n", message.message.green());
             }
         }
@@ -57,20 +56,11 @@ impl Messages {
     }
 
     fn upload_data(&self) {
-        let mut upstream = String::from("[");
-        for message in &self.data {
-            let json_message = json!(message);
-
-            upstream.push_str(&format!("{},\n", json_message))
-        }
-        let mut upstream = String::from(upstream.trim());
-        upstream.pop(); // remove trailing comma
-        upstream.push(']');
-        fs::write("database.json", upstream).expect("Unable to write");
+        upload_data_as_json(&self.data, "database.json".to_string()).unwrap();
     }
 }
 
-pub fn ui_implement(user: &User) -> (bool, bool) {
+pub fn ui_implement(user: &User) -> LoopHandler {
     // returns continue running and current signed up state
     let (tx_messages, rx_messages) = mpsc::channel();
     let message_handler = thread::spawn(move || {
@@ -104,18 +94,17 @@ pub fn ui_implement(user: &User) -> (bool, bool) {
     } else if current_option == 2 {
         send_message(user.username(), &mut messages_store, &users_data);
     } else if current_option == 3 {
-        return (false, true);
+        return LoopHandler::ReachMain;
     } else if current_option == 4 {
-        let logout = show_settings(user, &mut users_data);
-        if logout {
-            return (false, logout);
+        if show_settings(user, &mut users_data) {
+            return LoopHandler::ReachMain;
         }
     } else if current_option == 5 {
-        return (false, false);
+        return LoopHandler::BreakMain;
     } else {
         println!("{}", "Please enter a valid option".red());
     }
-    (true, false)
+    LoopHandler::Continue
 }
 
 fn send_message(username: &str, messages_store: &mut Messages, data: &ExistingData) {

@@ -1,5 +1,7 @@
 use colored::*;
-use my_app::{login::attempt_login, signup::user_signup, user_interface::ui_implement, User};
+use my_app::{
+    login::attempt_login, signup::user_signup, user_interface::ui_implement, LoopHandler, User,
+};
 use std::{
     io::{self, Write},
     path::Path,
@@ -24,14 +26,18 @@ fn app() {
     let user = implement_login_signup_loop();
     if let Some(user) = user {
         // None case should never occur
-        let mut run = true;
         println!("{} {}!", "\nWelcome".cyan(), user.username().cyan().bold());
 
-        while run {
-            let (now_run, repeat) = ui_implement(&user);
-            run = now_run;
-            if repeat {
-                app();
+        loop {
+            let loop_handle = ui_implement(&user);
+
+            match loop_handle {
+                LoopHandler::BreakMain => {
+                    println!("{}", "Thank you!".green());
+                    return;
+                }
+                LoopHandler::Continue => continue,
+                LoopHandler::ReachMain => app(),
             }
         }
     }

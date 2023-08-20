@@ -1,5 +1,6 @@
 //! A chat system which asks user to login/signup before messaging
 
+use serde::{Deserialize as DeserializeTrait, Serialize as SerializeTrait};
 use serde_derive::{Deserialize, Serialize};
 use serde_json::json;
 use std::vec;
@@ -14,6 +15,29 @@ pub mod account_modifications;
 pub mod login;
 pub mod signup;
 pub mod user_interface;
+
+pub enum LoopHandler {
+    BreakMain,
+    ReachMain,
+    Continue,
+}
+
+pub fn upload_data_as_json<T: SerializeTrait + DeserializeTrait<'static>>(
+    data: &Vec<T>,
+    path: String,
+) -> Result<(), Error> {
+    let mut upstream = String::from("[");
+    for user in data {
+        let user_json = json!(user).to_string();
+
+        upstream.push_str(&format!("{},\n", user_json))
+    }
+    let mut upstream = String::from(upstream.trim());
+    upstream.pop();
+    upstream.push(']');
+    fs::write(path, upstream)?;
+    Ok(())
+}
 
 /// struct storing all the information about current user
 #[derive(Debug, Serialize, Deserialize)]
@@ -78,16 +102,7 @@ impl ExistingData {
 
     pub fn append_custom_data(&mut self, data: User) -> Result<(), Error> {
         self.data.push(data);
-        let mut upstream = String::from("[");
-        for user in self.data() {
-            let user_json = json!(user).to_string();
-
-            upstream.push_str(&format!("{},\n", user_json))
-        }
-        let mut upstream = String::from(upstream.trim());
-        upstream.pop();
-        upstream.push(']');
-        fs::write("user_data.json", upstream)?;
+        upload_data_as_json(self.data(), "user_data.json".to_string())?;
         Ok(())
     }
 
@@ -96,16 +111,7 @@ impl ExistingData {
         if let Some(index) = self.data.iter().position(|x| x.username() == old_username) {
             self.data.remove(index);
             self.data.push(new_user);
-            let mut upstream = String::from("[");
-            for user in self.data() {
-                let user_json = json!(user).to_string();
-
-                upstream.push_str(&format!("{},\n", user_json))
-            }
-            let mut upstream = String::from(upstream.trim());
-            upstream.pop();
-            upstream.push(']');
-            fs::write("user_data.json", upstream)?;
+            upload_data_as_json(self.data(), "user_data.json".to_string())?;
             Ok(())
         } else {
             Err(Error::new(ErrorKind::Other, "No such user found"))
@@ -116,15 +122,7 @@ impl ExistingData {
         for (index, user) in self.data.iter().enumerate() {
             if user.username() == username {
                 self.data.remove(index);
-                let mut upstream = String::from("[");
-                for user in self.data() {
-                    let user_json = json!(user).to_string();
-                    upstream.push_str(&format!("{},\n", user_json))
-                }
-                let mut upstream = String::from(upstream.trim());
-                upstream.pop();
-                upstream.push(']');
-                fs::write("user_data.json", upstream)?;
+                upload_data_as_json(self.data(), "user_data.json".to_string())?;
                 break;
             }
         }
